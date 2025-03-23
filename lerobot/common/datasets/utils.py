@@ -44,6 +44,8 @@ from lerobot.common.robot_devices.robots.utils import Robot
 from lerobot.common.utils.utils import is_valid_numpy_dtype_string
 from lerobot.configs.types import DictLike, FeatureType, PolicyFeature
 
+import os
+
 DEFAULT_CHUNK_SIZE = 1000  # Max number of episodes per chunk
 
 INFO_PATH = "meta/info.json"
@@ -51,6 +53,7 @@ EPISODES_PATH = "meta/episodes.jsonl"
 STATS_PATH = "meta/stats.json"
 EPISODES_STATS_PATH = "meta/episodes_stats.jsonl"
 TASKS_PATH = "meta/tasks.jsonl"
+MODALITY_PATH = "meta/modality.json"
 
 DEFAULT_VIDEO_PATH = "videos/chunk-{episode_chunk:03d}/{video_key}/episode_{episode_index:06d}.mp4"
 DEFAULT_PARQUET_PATH = "data/chunk-{episode_chunk:03d}/episode_{episode_index:06d}.parquet"
@@ -129,7 +132,8 @@ def serialize_dict(stats: dict[str, torch.Tensor | np.ndarray | dict]) -> dict:
         elif isinstance(value, (int, float)):
             serialized_dict[key] = value
         else:
-            raise NotImplementedError(f"The value '{value}' of type '{type(value)}' is not supported.")
+            raise NotImplementedError(
+                f"The value '{value}' of type '{type(value)}' is not supported.")
     return unflatten_dict(serialized_dict)
 
 
@@ -151,6 +155,14 @@ def write_json(data: dict, fpath: Path) -> None:
     fpath.parent.mkdir(exist_ok=True, parents=True)
     with open(fpath, "w") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
+
+
+def copy_modality_file(local_dir: Path) -> None:
+    with open(os.path.join(os.getcwd(), 'lerobot/common/datasets', 'modality.json')) as f:
+        data = json.load(f)
+
+        with open(local_dir / MODALITY_PATH, "w") as save_path:
+            json.dump(data, save_path, indent=4, ensure_ascii=False)
 
 
 def load_jsonlines(fpath: Path) -> list[Any]:
@@ -187,7 +199,8 @@ def write_stats(stats: dict, local_dir: Path):
 
 
 def cast_stats_to_numpy(stats) -> dict[str, dict[str, np.ndarray]]:
-    stats = {key: np.array(value) for key, value in flatten_dict(stats).items()}
+    stats = {key: np.array(value)
+             for key, value in flatten_dict(stats).items()}
     return unflatten_dict(stats)
 
 
@@ -208,8 +221,10 @@ def write_task(task_index: int, task: dict, local_dir: Path):
 
 def load_tasks(local_dir: Path) -> tuple[dict, dict]:
     tasks = load_jsonlines(local_dir / TASKS_PATH)
-    tasks = {item["task_index"]: item["task"] for item in sorted(tasks, key=lambda x: x["task_index"])}
-    task_to_task_index = {task: task_index for task_index, task in tasks.items()}
+    tasks = {item["task_index"]: item["task"]
+             for item in sorted(tasks, key=lambda x: x["task_index"])}
+    task_to_task_index = {
+        task: task_index for task_index, task in tasks.items()}
     return tasks, task_to_task_index
 
 
@@ -225,7 +240,8 @@ def load_episodes(local_dir: Path) -> dict:
 def write_episode_stats(episode_index: int, episode_stats: dict, local_dir: Path):
     # We wrap episode_stats in a dictionary since `episode_stats["episode_index"]`
     # is a dictionary of stats and not an integer.
-    episode_stats = {"episode_index": episode_index, "stats": serialize_dict(episode_stats)}
+    episode_stats = {"episode_index": episode_index,
+                     "stats": serialize_dict(episode_stats)}
     append_jsonlines(episode_stats, local_dir / EPISODES_STATS_PATH)
 
 
@@ -269,7 +285,8 @@ def hf_transform_to_torch(items_dict: dict[torch.Tensor | None]):
         elif first_item is None:
             pass
         else:
-            items_dict[key] = [x if isinstance(x, str) else torch.tensor(x) for x in items_dict[key]]
+            items_dict[key] = [x if isinstance(
+                x, str) else torch.tensor(x) for x in items_dict[key]]
     return items_dict
 
 
@@ -322,7 +339,8 @@ def get_safe_version(repo_id: str, version: str | packaging.version.Version) -> 
     Otherwise, will throw a `CompatibilityError`.
     """
     target_version = (
-        packaging.version.parse(version) if not isinstance(version, packaging.version.Version) else version
+        packaging.version.parse(version) if not isinstance(
+            version, packaging.version.Version) else version
     )
     hub_versions = get_repo_versions(repo_id)
 
@@ -348,7 +366,8 @@ def get_safe_version(repo_id: str, version: str | packaging.version.Version) -> 
     if compatibles:
         return_version = max(compatibles)
         if return_version < target_version:
-            logging.warning(f"Revision {version} for {repo_id} not found, using version v{return_version}")
+            logging.warning(
+                f"Revision {version} for {repo_id} not found, using version v{return_version}")
         return f"v{return_version}"
 
     lower_major = [v for v in hub_versions if v.major < target_version.major]
@@ -371,16 +390,21 @@ def get_hf_features_from_features(features: dict) -> datasets.Features:
             hf_features[key] = datasets.Value(dtype=ft["dtype"])
         elif len(ft["shape"]) == 1:
             hf_features[key] = datasets.Sequence(
-                length=ft["shape"][0], feature=datasets.Value(dtype=ft["dtype"])
+                length=ft["shape"][0], feature=datasets.Value(
+                    dtype=ft["dtype"])
             )
         elif len(ft["shape"]) == 2:
-            hf_features[key] = datasets.Array2D(shape=ft["shape"], dtype=ft["dtype"])
+            hf_features[key] = datasets.Array2D(
+                shape=ft["shape"], dtype=ft["dtype"])
         elif len(ft["shape"]) == 3:
-            hf_features[key] = datasets.Array3D(shape=ft["shape"], dtype=ft["dtype"])
+            hf_features[key] = datasets.Array3D(
+                shape=ft["shape"], dtype=ft["dtype"])
         elif len(ft["shape"]) == 4:
-            hf_features[key] = datasets.Array4D(shape=ft["shape"], dtype=ft["dtype"])
+            hf_features[key] = datasets.Array4D(
+                shape=ft["shape"], dtype=ft["dtype"])
         elif len(ft["shape"]) == 5:
-            hf_features[key] = datasets.Array5D(shape=ft["shape"], dtype=ft["dtype"])
+            hf_features[key] = datasets.Array5D(
+                shape=ft["shape"], dtype=ft["dtype"])
         else:
             raise ValueError(f"Corresponding feature is not valid: {ft}")
 
@@ -405,7 +429,8 @@ def dataset_to_policy_features(features: dict[str, dict]) -> dict[str, PolicyFea
         if ft["dtype"] in ["image", "video"]:
             type = FeatureType.VISUAL
             if len(shape) != 3:
-                raise ValueError(f"Number of dimensions of {key} != 3 (shape={shape})")
+                raise ValueError(
+                    f"Number of dimensions of {key} != 3 (shape={shape})")
 
             names = ft["names"]
             # Backward compatibility for "channel" which is an error introduced in LeRobotDataset v2.0 for ported datasets.
@@ -455,9 +480,11 @@ def create_empty_dataset_info(
 def get_episode_data_index(
     episode_dicts: dict[dict], episodes: list[int] | None = None
 ) -> dict[str, torch.Tensor]:
-    episode_lengths = {ep_idx: ep_dict["length"] for ep_idx, ep_dict in episode_dicts.items()}
+    episode_lengths = {ep_idx: ep_dict["length"]
+                       for ep_idx, ep_dict in episode_dicts.items()}
     if episodes is not None:
-        episode_lengths = {ep_idx: episode_lengths[ep_idx] for ep_idx in episodes}
+        episode_lengths = {
+            ep_idx: episode_lengths[ep_idx] for ep_idx in episodes}
 
     cumulative_lengths = list(accumulate(episode_lengths.values()))
     return {
@@ -505,7 +532,8 @@ def check_timestamps_sync(
 
     # Mask to ignore differences at the boundaries between episodes
     mask = np.ones(len(diffs), dtype=bool)
-    ignored_diffs = episode_data_index["to"][:-1] - 1  # indices at the end of each episode
+    # indices at the end of each episode
+    ignored_diffs = episode_data_index["to"][:-1] - 1
     mask[ignored_diffs] = False
     filtered_within_tolerance = within_tolerance[mask]
 
@@ -514,7 +542,8 @@ def check_timestamps_sync(
         # Track original indices before masking
         original_indices = np.arange(len(diffs))
         filtered_indices = original_indices[mask]
-        outside_tolerance_filtered_indices = np.nonzero(~filtered_within_tolerance)[0]
+        outside_tolerance_filtered_indices = np.nonzero(
+            ~filtered_within_tolerance)[0]
         outside_tolerance_indices = filtered_indices[outside_tolerance_filtered_indices]
 
         outside_tolerances = []
@@ -548,7 +577,8 @@ def check_delta_timestamps(
     """
     outside_tolerance = {}
     for key, delta_ts in delta_timestamps.items():
-        within_tolerance = [abs(ts * fps - round(ts * fps)) / fps <= tolerance_s for ts in delta_ts]
+        within_tolerance = [
+            abs(ts * fps - round(ts * fps)) / fps <= tolerance_s for ts in delta_ts]
         if not all(within_tolerance):
             outside_tolerance[key] = [
                 ts for ts, is_within in zip(delta_ts, within_tolerance, strict=True) if not is_within
@@ -634,7 +664,8 @@ def create_lerobot_dataset_card(
         ],
     )
 
-    card_template = (importlib.resources.files("lerobot.common.datasets") / "card_template.md").read_text()
+    card_template = (importlib.resources.files(
+        "lerobot.common.datasets") / "card_template.md").read_text()
 
     return DatasetCard.from_template(
         card_data=card_data,
@@ -700,17 +731,20 @@ class IterableNamespace(SimpleNamespace):
 
 def validate_frame(frame: dict, features: dict):
     optional_features = {"timestamp"}
-    expected_features = (set(features) - set(DEFAULT_FEATURES.keys())) | {"task"}
+    expected_features = (
+        set(features) - set(DEFAULT_FEATURES.keys())) | {"task"}
     actual_features = set(frame.keys())
 
-    error_message = validate_features_presence(actual_features, expected_features, optional_features)
+    error_message = validate_features_presence(
+        actual_features, expected_features, optional_features)
 
     if "task" in frame:
         error_message += validate_feature_string("task", frame["task"])
 
     common_features = actual_features & (expected_features | optional_features)
     for name in common_features - {"task"}:
-        error_message += validate_feature_dtype_and_shape(name, features[name], frame[name])
+        error_message += validate_feature_dtype_and_shape(
+            name, features[name], frame[name])
 
     if error_message:
         raise ValueError(error_message)
@@ -743,7 +777,8 @@ def validate_feature_dtype_and_shape(name: str, feature: dict, value: np.ndarray
     elif expected_dtype == "string":
         return validate_feature_string(name, value)
     else:
-        raise NotImplementedError(f"The feature dtype '{expected_dtype}' is not implemented yet.")
+        raise NotImplementedError(
+            f"The feature dtype '{expected_dtype}' is not implemented yet.")
 
 
 def validate_feature_numpy_array(
@@ -802,7 +837,8 @@ def validate_episode_buffer(episode_buffer: dict, total_episodes: int, features:
         )
 
     if episode_buffer["size"] == 0:
-        raise ValueError("You must add one or several frames with `add_frame` before calling `add_episode`.")
+        raise ValueError(
+            "You must add one or several frames with `add_frame` before calling `add_episode`.")
 
     buffer_keys = set(episode_buffer.keys()) - {"task", "size"}
     if not buffer_keys == set(features):

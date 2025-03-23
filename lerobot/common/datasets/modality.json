@@ -1,0 +1,54 @@
+{
+    "state": {
+        "main_arm": {
+            "start": 0,
+            "end": 5
+        },
+        "main_gripper": {
+            "start": 5,
+            "end": 6
+        },
+        "cv_arm": {
+            "start": 6,
+            "end": 11
+        },
+        "cv_gripper": {
+            "start": 11,
+            "end": 12
+        }
+    },
+    "action": {
+        "main_arm": {
+            "start": 0,
+            "end": 5
+        },
+        "main_gripper": {
+            "start": 5,
+            "end": 6
+        },
+        "cv_arm": {
+            "start": 6,
+            "end": 11
+        },
+        "cv_gripper": {
+            "start": 11,
+            "end": 12
+        }
+    },
+    "video": {
+        "main": {
+            "original_key": "observation.images.main"   
+        },
+        "cv": {
+            "original_key": "observation.images.cv"
+        },
+        "webcam": {
+            "original_key": "observation.images.webcam"
+        }
+    },
+    "annotation": {
+        "human.task_description": {
+            "original_key": "task_index"
+        }
+    }
+}

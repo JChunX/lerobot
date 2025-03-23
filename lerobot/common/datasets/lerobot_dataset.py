@@ -43,6 +43,7 @@ from lerobot.common.datasets.utils import (
     check_delta_timestamps,
     check_timestamps_sync,
     check_version_compatibility,
+    copy_modality_file,
     create_empty_dataset_info,
     create_lerobot_dataset_card,
     embed_images,
@@ -265,6 +266,7 @@ class LeRobotDatasetMetadata:
             self.update_video_info()
 
         write_info(self.info, self.root)
+        copy_modality_file(self.root)
 
         episode_dict = {
             "episode_index": episode_index,

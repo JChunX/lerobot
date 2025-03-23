@@ -333,6 +333,8 @@ class ManipulatorRobot:
         for name, arm in self.leader_arms.items():
             calibration = load_or_run_calibration_(name, arm, "leader")
             arm.set_calibration(calibration)
+        
+        print("Calibration is Active!")
 
     def set_koch_robot_preset(self):
         def set_operating_mode_(arm):
@@ -596,7 +598,7 @@ class ManipulatorRobot:
             action_sent.append(goal_pos)
 
             # Send goal position to each follower
-            goal_pos = goal_pos.numpy().astype(np.float32)
+            goal_pos = goal_pos.numpy()# .astype(np.float32)
             self.follower_arms[name].write("Goal_Position", goal_pos)
 
         return torch.cat(action_sent)

@@ -352,7 +352,6 @@ def replay(
     log_say("Replaying episode", cfg.play_sounds, blocking=True)
     for idx in range(dataset.num_frames):
         start_episode_t = time.perf_counter()
-
         action = actions[idx]["action"]
         robot.send_action(action)
 
